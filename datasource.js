@@ -72,7 +72,8 @@ function (angular, _, kbn, moment) {
           return backendSrv.datasourceRequest(resource_search_req).then(function(result) {
             var promise = _.map(result.data, function(resource) {
               var measures_req = _.merge({}, default_measures_req);
-              measures_req.url = self.url + '/v1/resource/generic/' + resource["id"] + '/metric/' + target.metric_name + '/measures';
+              measures_req.url = (self.url + '/v1/resource/' + (target.resource_type || 'generic') +
+                                  '/' + resource["id"] + '/metric/' + target.metric_name + '/measures');
               var label = resource[target.label];
               if (!label) { label = resource["id"]; }
               return retrieve_measures(label, measures_req);
@@ -82,13 +83,20 @@ function (angular, _, kbn, moment) {
             });
           });
         } else if (target.queryMode === "resource_aggregation") {
-          default_measures_req.url = self.url + '/v1/aggregation/resource/' + target.resource_type + '/metric/' + target.metric_name;
+          default_measures_req.url = (self.url + '/v1/aggregation/resource/' +
+                                      (target.resource_type || 'generic') + '/metric/' + target.metric_name);
           default_measures_req.method = 'POST';
           default_measures_req.body = target.resource_search;
           return retrieve_measures(target.label || "unlabeled", default_measures_req);
+
+        } else if (target.queryMode === "resource") {
+          default_measures_req.url = (self.url + '/v1/resource/' + target.resource_type + '/' +
+                                      target.resource_id + '/metric/' + target.metric_name+ '/measures');
+          return retrieve_measures(target.resource_id, default_measures_req);
+
         } else if (target.queryMode === "metric") {
-          default_measures_req.url = self.url + '/v1/metric/' + target.metric + '/measures';
-          return retrieve_measures(target.metric, default_measures_req);
+          default_measures_req.url = self.url + '/v1/metric/' + target.metric_id + '/measures';
+          return retrieve_measures(target.metric_id, default_measures_req);
         }
 
       }, this);

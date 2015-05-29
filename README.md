@@ -28,12 +28,13 @@ Implemented
 
 * Getting measures of a metric with the metric_id
 * Getting measures of multiple resources with a search query and a metric name
+* Getting measures of metric with the resource id and the metric name
+* Getting measures from a cross aggregation query
 
 Not yet implemented
 ===================
 
-* Getting measures of metric with the resource id and the metric name
-* Getting measures from a cross aggregation query
+* Template query
 
 Current Limitation
 ==================

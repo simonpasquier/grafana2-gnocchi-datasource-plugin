@@ -47,7 +47,7 @@ function (angular, _) {
     $scope.toggleQueryMode = function () {
       var mode = [
         "resource_search", "resource_aggregation",
-        "metric",
+        "resource", "metric",
       ];
       var index = mode.indexOf($scope.target.queryMode) + 1;
       if (index === mode.length) {
