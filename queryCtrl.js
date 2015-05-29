@@ -21,6 +21,11 @@ function (angular, _) {
       $scope.$on('typeahead-updated', function() {
         $timeout($scope.targetBlur);
       });
+
+      if (!$scope.target.queryMode) {
+        //$scope.target.queryMode = "resource_search";
+        $scope.target.queryMode = "resource_aggregation";
+      }
     };
 
     $scope.suggestMetrics = function(query, callback) {
@@ -40,7 +45,15 @@ function (angular, _) {
     };
 
     $scope.toggleQueryMode = function () {
-      $scope.target.resQuery = !$scope.target.resQuery;
+      var mode = [
+        "resource_search", "resource_aggregation",
+        "metric",
+      ];
+      var index = mode.indexOf($scope.target.queryMode) + 1;
+      if (index === mode.length) {
+        index = 0;
+      }
+      $scope.target.queryMode = mode[index];
     };
 
     function validateTarget(target) {
