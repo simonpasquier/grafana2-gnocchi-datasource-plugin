@@ -2,7 +2,7 @@ module.exports = function(config) {
   return {
     source: {
       files: {
-        src: ['Gruntfile.js', '<%= srcDir %>/**/*.js'],
+          src: ['*.js'],
       }
     },
     tests: {

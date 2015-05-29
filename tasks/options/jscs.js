@@ -1,8 +1,7 @@
 module.exports = function(config) {
   return {
     src: [
-      'Gruntfile.js',
-      '<%= srcDir %>/**/*.js',
+      '*.js'
     ],
     options: {
       config: ".jscs.json",
