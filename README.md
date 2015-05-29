@@ -12,12 +12,16 @@ Installation
 
 Copy all files into <grafana_installation_directory>/public/app/plugins/datasource/gnocchi
 
-Tests
-=====
+Developement and Tests
+======================
 
+    cd <grafana_src_directory>
+    git clone https://github.com/sileht/grafana2-gnocchi-datasource-plugin public/app/plugins/datasource/gnocchi
+    ln -s public/app/plugins/datasource/gnocchi/specs.js public/test/specs/gnocchi.js
+    
     npm install
     npm install -g grunt-cli
-    grunt
+    grunt test
 
 Implemented
 ===========
