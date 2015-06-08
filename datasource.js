@@ -141,27 +141,37 @@ function (angular, _, kbn, moment) {
     //////////////////////
 
     function to_utc_epoch_seconds(date) {
+      alert(date);
       date = kbn.parseDate(date);
       return date.getTime();
     }
 
-    // Convert 'now' to timestamp
+    // Convert grafana format to gnocchi format
     function to_iso8601(date) {
+      var parsed_date;
       if (_.isString(date)) {
         if (date === 'now') {
-          return 'now';
+          parsed_date = moment.utc();
+        } else if (date.indexOf('now') >= 0) {
+          parsed_date = moment.utc();
+          var delta = date.substring(3);
+          var method;
+          if (delta.indexOf('-') == 0) {
+            delta = delta.substring(1);
+            method = function(a, u) { parsed_date.subtract(a, u); };
+          } else {
+            method = function(a, u) { parsed_date.add(a, u); };
+          }
+          var amount = parseInt(delta.slice(0, delta.length-1));
+          var unit = delta.slice(delta.length-1, delta.length);
+          method(amount, unit);
+        } else {
+          parsed_date = moment.utc(kbn.parseDate(date));
         }
-        else if (date.indexOf('now') >= 0) {
-          date = date.substring(3);
-          date = date.replace('m', 'min');
-          date = date.replace('M', 'mon');
-          return date;
-        }
-        date = kbn.parseDate(date);
+      } else {
+        parsed_date = moment.utc(date);
       }
-
-      date = moment.utc(date);
-      return date.toISOString();
+      return parsed_date.toISOString();
     }
 
     /////////////////////////////////////////
