@@ -67,7 +67,7 @@ function (angular, _, kbn, moment) {
             url: self.url + '/v1/search/resource/instance',
             method: 'POST',
             headers: this.default_headers,
-            body: target.resource_search,
+            data: target.resource_search,
           };
           return backendSrv.datasourceRequest(resource_search_req).then(function(result) {
             var promise = _.map(result.data, function(resource) {
@@ -86,7 +86,7 @@ function (angular, _, kbn, moment) {
           default_measures_req.url = (self.url + '/v1/aggregation/resource/' +
                                       (target.resource_type || 'generic') + '/metric/' + target.metric_name);
           default_measures_req.method = 'POST';
-          default_measures_req.body = target.resource_search;
+          default_measures_req.data = target.resource_search;
           return retrieve_measures(target.label || "unlabeled", default_measures_req);
 
         } else if (target.queryMode === "resource") {
@@ -98,7 +98,6 @@ function (angular, _, kbn, moment) {
           default_measures_req.url = self.url + '/v1/metric/' + target.metric_id + '/measures';
           return retrieve_measures(target.metric_id, default_measures_req);
         }
-
       }, this);
       return $q.all(promises).then(function(results) {
         return { data: _.flatten(results) };
@@ -141,7 +140,6 @@ function (angular, _, kbn, moment) {
     //////////////////////
 
     function to_utc_epoch_seconds(date) {
-      alert(date);
       date = kbn.parseDate(date);
       return date.getTime();
     }
