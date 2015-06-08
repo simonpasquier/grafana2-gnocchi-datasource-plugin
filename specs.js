@@ -22,8 +22,8 @@ define([
         interval: '1s'
       };
       var headers = {"X-Auth-Token":"XXXXXXXXXXXXX", "Accept":"application/json, text/plain, */*"};
-      if (data != undefined) {
-        headers["Content-Type"] = "application/json"
+      if (data !== undefined) {
+        headers["Content-Type"] = "application/json";
       }
       var results;
       beforeEach(function() {
@@ -31,7 +31,7 @@ define([
           ["2014-10-06T14:33:57", "60.0", "43.1"],
           ["2014-10-06T14:34:12", "60.0", "12"],
           ["2014-10-06T14:34:20", "60.0", "2"]
-        ])
+        ]);
         ctx.ds.query(query).then(function(data) { results = data; });
         ctx.$httpBackend.flush();
       });
@@ -57,7 +57,8 @@ define([
       assert_simple_test(
         [{ queryMode: 'resource', resource_type:   'instance', resource_id: 'my_uuid', metric_name: 'cpu_util', aggregator: 'max' }],
         'GET',
-        '/v1/resource/instance/my_uuid/metric/cpu_util/measures?aggregation=max&end=2014-04-10T03:20:10.000Z&start=2014-04-10T03:20:10.000Z',
+        "/v1/resource/instance/my_uuid/metric/cpu_util/measures?" +
+          "aggregation=max&end=2014-04-10T03:20:10.000Z&start=2014-04-10T03:20:10.000Z",
         undefined,
         'my_uuid'
         );
@@ -73,12 +74,13 @@ define([
         );
     });
 
-
     describe('Resource aggregation', function() {
       assert_simple_test(
-        [{ queryMode: 'resource_aggregation', resource_search: '{"=": {"server_group": "autoscalig_group"}}', resource_type:   'instance', label: 'my_aggregation', metric_name: 'cpu_util', aggregator: 'max' }],
+        [{ queryMode: 'resource_aggregation', resource_search: '{"=": {"server_group": "autoscalig_group"}}',
+          resource_type: 'instance', label: 'my_aggregation', metric_name: 'cpu_util', aggregator: 'max' }],
         'POST',
-        "/v1/aggregation/resource/instance/metric/cpu_util?aggregation=max&end=2014-04-10T03:20:10.000Z&start=2014-04-10T03:20:10.000Z",
+        "/v1/aggregation/resource/instance/metric/cpu_util?" +
+          "aggregation=max&end=2014-04-10T03:20:10.000Z&start=2014-04-10T03:20:10.000Z",
         {"=": {"server_group": "autoscalig_group"}},
         'my_aggregation');
     });
@@ -86,7 +88,8 @@ define([
     describe('Resource search', function() {
       var query = {
         range: { from: 'now-2h', to: 'now' },
-        targets: [{ queryMode: 'resource_search', resource_search: '{"=": {"server_group": "autoscalig_group"}}', resource_type: 'instance', label: 'display_name', metric_name: 'cpu_util', aggregator: 'max' }],
+        targets: [{ queryMode: 'resource_search', resource_search: '{"=": {"server_group": "autoscalig_group"}}',
+          resource_type: 'instance', label: 'display_name', metric_name: 'cpu_util', aggregator: 'max' }],
         interval: '1s'
       };
 
@@ -108,16 +111,18 @@ define([
           "type": "instance",
           "server_group": "autoscalig_group",
         }
-      ]
+      ];
 
-      var url_expected_get_measures1 = "/v1/resource/instance/6868da77-fa82-4e67-aba9-270c5ae8cbca/metric/cpu_util/measures?aggregation=max&end=2014-04-10T03:20:10.000Z&start=2014-04-10T03:20:10.000Z";
+      var url_expected_get_measures1 = "/v1/resource/instance/6868da77-fa82-4e67-aba9-270c5ae8cbca/metric/cpu_util/measures?" +
+        "aggregation=max&end=2014-04-10T03:20:10.000Z&start=2014-04-10T03:20:10.000Z";
       var response_get_measures1 = [
         ["2014-10-06T14:33:57", "60.0", "43.1"],
         ["2014-10-06T14:34:12", "60.0", "12"],
         ["2014-10-06T14:34:20", "60.0", "2"],
       ];
 
-      var url_expected_get_measures2 = "/v1/resource/instance/f898ba55-bbea-460f-985c-3d1243348304/metric/cpu_util/measures?aggregation=max&end=2014-04-10T03:20:10.000Z&start=2014-04-10T03:20:10.000Z";
+      var url_expected_get_measures2 = "/v1/resource/instance/f898ba55-bbea-460f-985c-3d1243348304/metric/cpu_util/measures?" +
+        "aggregation=max&end=2014-04-10T03:20:10.000Z&start=2014-04-10T03:20:10.000Z";
       var response_get_measures2 = [
         ["2014-10-06T14:33:57", "60.0", "22.1"],
         ["2014-10-06T14:34:12", "60.0", "3"],

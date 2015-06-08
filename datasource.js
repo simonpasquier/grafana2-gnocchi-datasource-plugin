@@ -154,7 +154,7 @@ function (angular, _, kbn, moment) {
           parsed_date = moment.utc();
           var delta = date.substring(3);
           var method;
-          if (delta.indexOf('-') == 0) {
+          if (delta.indexOf('-') === 0) {
             delta = delta.substring(1);
             method = function(a, u) { parsed_date.subtract(a, u); };
           } else {
