@@ -10,25 +10,32 @@ function (angular, _, kbn, moment) {
 
   var module = angular.module('grafana.services');
 
+  module.config(function($httpProvider) {
+    //Enable cross domain calls
+    $httpProvider.defaults.useXDomain = true;
+  });
+
   module.factory('GnocchiDatasource', function($q, backendSrv) {
 
     function GnocchiDatasource(datasource) {
       this.type = 'gnocchi';
       this.name = datasource.name;
       this.keystone_endpoint = datasource.url;
-      this.username = datasource.username;
-      this.password = datasource.password;
-      this.url = null;
-      this.token = null;
+      this.project = datasource.jsonData.project;
+      this.username = datasource.jsonData.username;
+      this.password = datasource.jsonData.password;
+      this.acces = datasource.access;
 
-      // NOTE(sileht): override until we have a clue to support keytone
-      this.url = datasource.url;
-      this.token = datasource.jsonData.token;
+      if (this.access == 'proxy'){
+        this.url = datasource.url;
+      } else {
+        this.url = null;
+      }
 
       this.default_headers = {
         'Content-Type': 'application/json',
-        'X-Auth-Token': this.token,
-      },
+        'X-Auth-Token': datasource.jsonData.token,
+      }
 
       this.supportMetrics = true;
       this.editorSrc = 'app/features/gnocchi/partials/query.editor.html';
@@ -47,9 +54,10 @@ function (angular, _, kbn, moment) {
     /// Query
     ////////////////
 
-    GnocchiDatasource.prototype.query = function(options) {
+    GnocchiDatasource.prototype.do_query = function(options) {
       var self = this;
       var promises = _.map(options.targets, function(target) {
+        //alert(this.default_headers['X-Auth-Token']);
         var default_measures_req = {
           method: 'GET',
           headers: this.default_headers,
@@ -64,7 +72,7 @@ function (angular, _, kbn, moment) {
 
         if (target.queryMode === "resource_search") {
           var resource_search_req = {
-            url: self.url + '/v1/search/resource/instance',
+            url: self.url + 'v1/search/resource/instance',
             method: 'POST',
             headers: this.default_headers,
             data: target.resource_search,
@@ -72,7 +80,7 @@ function (angular, _, kbn, moment) {
           return backendSrv.datasourceRequest(resource_search_req).then(function(result) {
             var promise = _.map(result.data, function(resource) {
               var measures_req = _.merge({}, default_measures_req);
-              measures_req.url = (self.url + '/v1/resource/' + (target.resource_type || 'generic') +
+              measures_req.url = (self.url + 'v1/resource/' + (target.resource_type || 'generic') +
                                   '/' + resource["id"] + '/metric/' + target.metric_name + '/measures');
               var label = resource[target.label];
               if (!label) { label = resource["id"]; }
@@ -83,19 +91,19 @@ function (angular, _, kbn, moment) {
             });
           });
         } else if (target.queryMode === "resource_aggregation") {
-          default_measures_req.url = (self.url + '/v1/aggregation/resource/' +
+          default_measures_req.url = (self.url + 'v1/aggregation/resource/' +
                                       (target.resource_type || 'generic') + '/metric/' + target.metric_name);
           default_measures_req.method = 'POST';
           default_measures_req.data = target.resource_search;
           return retrieve_measures(target.label || "unlabeled", default_measures_req);
 
         } else if (target.queryMode === "resource") {
-          default_measures_req.url = (self.url + '/v1/resource/' + target.resource_type + '/' +
+          default_measures_req.url = (self.url + 'v1/resource/' + target.resource_type + '/' +
                                       target.resource_id + '/metric/' + target.metric_name+ '/measures');
           return retrieve_measures(target.resource_id, default_measures_req);
 
         } else if (target.queryMode === "metric") {
-          default_measures_req.url = self.url + '/v1/metric/' + target.metric_id + '/measures';
+          default_measures_req.url = self.url + 'v1/metric/' + target.metric_id + '/measures';
           return retrieve_measures(target.metric_id, default_measures_req);
         }
       }, this);
@@ -126,7 +134,7 @@ function (angular, _, kbn, moment) {
       };
       var attribute = "id";
       if (type === 'metrics') {
-        options.url = this.url + '/v1/metric';
+        options.url = this.url + 'v1/metric';
       }
       return backendSrv.datasourceRequest(options).then(function(result) {
         return _.map(result.data, function(item) {
@@ -172,9 +180,9 @@ function (angular, _, kbn, moment) {
       return parsed_date.toISOString();
     }
 
-    /////////////////////////////////////////
-    /// UNUSED METHOD, KEYSTONE STUFFS
-    /////////////////////////////////////////
+    //////////////////////
+    /// KEYSTONE STUFFS
+    //////////////////////
 
     GnocchiDatasource.prototype.ensure_authentified = function(deferred, callback) {
       var self = this;
@@ -182,7 +190,7 @@ function (angular, _, kbn, moment) {
         return self.get_token(callback);
       } else {
         return callback().then(undefined, function(reason) {
-          if (reason.status === 401) {
+          if (reason.status === 401 && self.access == 'direct') {
             return self.get_token(callback);
           } else if (reason.status !== 0 || reason.status >= 300) {
             if (reason.data && reason.data.error) {
@@ -202,22 +210,36 @@ function (angular, _, kbn, moment) {
         headers: {
           'Content-Type': 'application/json',
         },
-        url: this.keystone_endpoint + '/v3/auth/tokens',
-        data: { "auth": {
-          "identity": {
-            "methods": ["password"],
-            "password": { "user": {
-              "name": this.username,
-              "password": this.password,
-              "domain": { "id": "default"  } }}},
-              "scope": { "project": {
+        url: this.keystone_endpoint + 'v3/auth/tokens',
+        data: {
+          "auth": {
+            "identity": {
+              "methods": ["password"],
+              "password": {
+                "user": {
+                  "name": this.username,
+                  "password": this.password,
+                  "domain": { "id": "default"  }
+                }
+              }
+            },
+            "scope": {
+              "project": {
                 "domain": { "id": "default" },
-                "name": this.username}}
-        }}
+                "name": this.project,
+              }
+            }
+          }
+        }
       };
       var self = this;
       backendSrv.datasourceRequest(options).then(function(result) {
-        self.token = result.headers('X-Subject-Token');
+        if (result.status !== 201) {
+          console.log("Invalid credential")
+          return;
+        }
+        console.log(result.headers())
+        self.default_headers['X-Auth-Token'] = result.headers('X-Subject-Token');
         _.each(result.data['token']['catalog'], function(service) {
           if (service['type'] === 'metric') {
             _.each(service['endpoints'], function(endpoint) {
