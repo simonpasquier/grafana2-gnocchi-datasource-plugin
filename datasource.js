@@ -15,21 +15,25 @@ function (angular, _, kbn, moment) {
     $httpProvider.defaults.useXDomain = true;
   });
 
-  module.factory('GnocchiDatasource', function($q, backendSrv) {
+  module.factory('GnocchiDatasource', function($q, backendSrv, templateSrv) {
 
     function GnocchiDatasource(datasource) {
       this.type = 'gnocchi';
       this.name = datasource.name;
-      this.keystone_endpoint = datasource.url;
       this.project = datasource.jsonData.project;
       this.username = datasource.jsonData.username;
       this.password = datasource.jsonData.password;
-      this.acces = datasource.access;
 
-      if (this.access == 'proxy'){
-        this.url = datasource.url;
-      } else {
+      if (datasource.url.indexOf('http') === 0){
+        this.keystone_endpoint = datasource.url;
         this.url = null;
+      } else {
+        this.keystone_endpoint = null;
+        this.url = datasource.url;
+      }
+
+      if (this.url[this.url.length - 1] !== '/') {
+        this.url += '/'
       }
 
       this.default_headers = {
@@ -40,24 +44,81 @@ function (angular, _, kbn, moment) {
       this.supportMetrics = true;
       this.editorSrc = 'app/features/gnocchi/partials/query.editor.html';
     }
-    // Called once per panel (graph)
+
+    ////////////////
+    // Plugins API
+    ////////////////
+
     GnocchiDatasource.prototype.query = function(options) {
-      var deferred = $q.defer();
-      var self = this;
-      this.ensure_authentified(deferred, function() {
-        return self.do_query(options);
+      if (this.keystone_endpoint === null){
+        return this.do_query(options);
+      } else {
+        var deferred = $q.defer();
+        var self = this;
+        this.ensure_authentified(deferred, function() {
+          return self.do_query(options);
+        });
+        return deferred.promise;
+      }
+    };
+
+    GnocchiDatasource.prototype.performSuggestQuery = function(query, type) {
+      // handle only type == 'metrics'
+      var options = {
+          method: 'GET',
+          headers: this.default_headers,
+      };
+      var attribute = "id";
+      if (type === 'metrics') {
+        options.url = this.url + 'v1/metric';
+      }
+      return backendSrv.datasourceRequest(options).then(function(result) {
+        return _.map(result.data, function(item) {
+          return item[attribute];
+        });
       });
-      return deferred.promise;
+    };
+
+    GnocchiDatasource.prototype.metricFindQuery = function(query) {
+      console.log(query);
+      return {};
+      var interpolated;
+      try {
+        interpolated = encodeURIComponent(templateSrv.replace(query));
+      }
+      catch(err) {
+        return $q.reject(err);
+      }
+
+      return this.doGraphiteRequest({method: 'GET', url: '/metrics/find/?query=' + interpolated })
+        .then(function(results) {
+          return _.map(results.data, function(metric) {
+            return {
+              text: metric.text,
+              expandable: metric.expandable ? true : false
+            };
+          });
+        });
     };
 
     ////////////////
     /// Query
     ////////////////
 
+    GnocchiDatasource.prototype.validateSearchTarget = function(target) {
+          var resource_search_req = {
+            url: this.url + 'v1/search/resource/instance',
+            method: 'POST',
+            headers: this.default_headers,
+            data: target.resource_search,
+          };
+          return backendSrv.datasourceRequest(resource_search_req);
+    }
+
+
     GnocchiDatasource.prototype.do_query = function(options) {
       var self = this;
       var promises = _.map(options.targets, function(target) {
-        //alert(this.default_headers['X-Auth-Token']);
         var default_measures_req = {
           method: 'GET',
           headers: this.default_headers,
@@ -74,7 +135,7 @@ function (angular, _, kbn, moment) {
           var resource_search_req = {
             url: self.url + 'v1/search/resource/instance',
             method: 'POST',
-            headers: this.default_headers,
+            headers: self.default_headers,
             data: target.resource_search,
           };
           return backendSrv.datasourceRequest(resource_search_req).then(function(result) {
@@ -121,27 +182,6 @@ function (angular, _, kbn, moment) {
         return { target: name, datapoints: dps };
       });
     }
-
-    /////////////////////////
-    /// Completion method
-    /////////////////////////
-
-    GnocchiDatasource.prototype.performSuggestQuery = function(query, type) {
-      // handle only type == 'metrics'
-      var options = {
-          method: 'GET',
-          headers: this.default_headers,
-      };
-      var attribute = "id";
-      if (type === 'metrics') {
-        options.url = this.url + 'v1/metric';
-      }
-      return backendSrv.datasourceRequest(options).then(function(result) {
-        return _.map(result.data, function(item) {
-          return item[attribute];
-        });
-      });
-    };
 
     //////////////////////
     /// Utils
@@ -190,14 +230,10 @@ function (angular, _, kbn, moment) {
         return self.get_token(callback);
       } else {
         return callback().then(undefined, function(reason) {
-          if (reason.status === 401 && self.access == 'direct') {
+          if (reason.status === 401) {
             return self.get_token(callback);
           } else if (reason.status !== 0 || reason.status >= 300) {
-            if (reason.data && reason.data.error) {
-              reason.message = 'Gnocchi Error Response: ' + reason.data.error;
-            } else {
-              reason.message = 'Gnocchi Error: ' + reason.message;
-            }
+            reason.message = 'Gnocchi Error: ' + reason.message;
             deferred.reject(reason);
           }
         });

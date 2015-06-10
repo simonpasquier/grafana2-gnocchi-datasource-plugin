@@ -10,7 +10,6 @@ function (angular, _) {
   module.controller('GnocchiQueryCtrl', function($scope, $timeout) {
 
     $scope.init = function() {
-      $scope.target.errors = validateTarget($scope.target);
       // TODO(sileht): Allows custom
       $scope.aggregators = ['mean', 'sum', 'min', 'max'];
 
@@ -26,6 +25,7 @@ function (angular, _) {
         //$scope.target.queryMode = "resource_search";
         $scope.target.queryMode = "resource_aggregation";
       }
+      validateTarget($scope.target);
     };
 
     $scope.suggestMetrics = function(query, callback) {
@@ -35,7 +35,7 @@ function (angular, _) {
     };
 
     $scope.targetBlur = function() {
-      $scope.target.errors = validateTarget($scope.target);
+      validateTarget($scope.target);
 
       // this does not work so good
       if (!_.isEqual($scope.oldTarget, $scope.target) && _.isEmpty($scope.target.errors)) {
@@ -57,9 +57,29 @@ function (angular, _) {
     };
 
     function validateTarget(target) {
-      target;
-      var errs = {};
-      return errs;
+      switch(target.queryMode) {
+        case "resource_aggregation":
+        case "resource_search":
+          $scope.datasource.validateSearchTarget(target).then(function(result){
+            switch(result.status) {
+              case 401:
+                target.errors = "Datasource authentification failed";
+                break;
+              case 400:
+                target.errors = 'bla: ' + result;
+                break;
+              case 200:
+                target.errors = null;
+                break;
+              default:
+                target.errors = "Unknown errors: " + result.data;
+                break;
+            }
+          });
+          break;
+        default:
+          break;
+      }
     }
 
   });
