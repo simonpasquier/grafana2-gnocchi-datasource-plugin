@@ -25,15 +25,11 @@ function (angular, _, kbn, moment) {
       this.password = datasource.jsonData.password;
 
       if (datasource.url.indexOf('http') === 0){
-        this.keystone_endpoint = datasource.url;
         this.url = null;
+        this.keystone_endpoint = sanitize_url(datasource.url);
       } else {
+        this.url = sanitize_url(datasource.url);
         this.keystone_endpoint = null;
-        this.url = datasource.url;
-      }
-
-      if (this.url[this.url.length - 1] !== '/') {
-        this.url += '/'
       }
 
       this.default_headers = {
@@ -99,6 +95,36 @@ function (angular, _, kbn, moment) {
             };
           });
         });
+    };
+
+    GnocchiDatasource.prototype.testDatasource = function() {
+      if (this.keystone_endpoint === null){
+        return this.do_testDatasource();
+      } else {
+        var deferred = $q.defer();
+        var self = this;
+        this.ensure_authentified(deferred, function() {
+          return self.do_testDatasource();
+        });
+        return deferred.promise;
+      }
+    };
+
+    GnocchiDatasource.prototype.do_testDatasource = function() {
+      var resource_search_req = {
+        url: this.url,
+        method: 'GET',
+        headers: this.default_headers,
+      };
+      return backendSrv.datasourceRequest(resource_search_req).then(function (result) {
+        if (result.status === 200){
+          return { status: "success", message: "Data source is working", title: "Success" };
+        } else if (result.status === 401) {
+          return { status: "failure", message: "Data source authentification fail", title: "Failure" };
+        } else {
+          return { status: "failure", message: "Data source won't work:" + result.data, title: "Failure" };
+        }
+      });
     };
 
     ////////////////
@@ -220,6 +246,14 @@ function (angular, _, kbn, moment) {
       return parsed_date.toISOString();
     }
 
+    function sanitize_url(url) {
+        if (url[url.length - 1] !== '/') {
+          return url + '/';
+        } else {
+          return url;
+        }
+    }
+
     //////////////////////
     /// KEYSTONE STUFFS
     //////////////////////
@@ -280,7 +314,7 @@ function (angular, _, kbn, moment) {
           if (service['type'] === 'metric') {
             _.each(service['endpoints'], function(endpoint) {
               if (endpoint['interface'] === 'public') {
-                self.url = endpoint['url'];
+                self.url = sanitize_url(endpoint['url']);
                 callback();
               }
             });
