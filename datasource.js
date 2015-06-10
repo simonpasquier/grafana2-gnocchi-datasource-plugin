@@ -35,7 +35,7 @@ function (angular, _, kbn, moment) {
       this.default_headers = {
         'Content-Type': 'application/json',
         'X-Auth-Token': datasource.jsonData.token,
-      }
+      };
 
       this.supportMetrics = true;
       this.editorSrc = 'app/features/gnocchi/partials/query.editor.html';
@@ -78,6 +78,7 @@ function (angular, _, kbn, moment) {
     GnocchiDatasource.prototype.metricFindQuery = function(query) {
       console.log(query);
       return {};
+      /*
       var interpolated;
       try {
         interpolated = encodeURIComponent(templateSrv.replace(query));
@@ -95,6 +96,7 @@ function (angular, _, kbn, moment) {
             };
           });
         });
+      */
     };
 
     GnocchiDatasource.prototype.testDatasource = function() {
@@ -132,15 +134,14 @@ function (angular, _, kbn, moment) {
     ////////////////
 
     GnocchiDatasource.prototype.validateSearchTarget = function(target) {
-          var resource_search_req = {
-            url: this.url + 'v1/search/resource/instance',
-            method: 'POST',
-            headers: this.default_headers,
-            data: target.resource_search,
-          };
-          return backendSrv.datasourceRequest(resource_search_req);
-    }
-
+      var resource_search_req = {
+        url: this.url + 'v1/search/resource/instance',
+        method: 'POST',
+        headers: this.default_headers,
+        data: target.resource_search,
+      };
+      return backendSrv.datasourceRequest(resource_search_req);
+    };
 
     GnocchiDatasource.prototype.do_query = function(options) {
       var self = this;
@@ -247,11 +248,11 @@ function (angular, _, kbn, moment) {
     }
 
     function sanitize_url(url) {
-        if (url[url.length - 1] !== '/') {
-          return url + '/';
-        } else {
-          return url;
-        }
+      if (url[url.length - 1] !== '/') {
+        return url + '/';
+      } else {
+        return url;
+      }
     }
 
     //////////////////////
@@ -305,10 +306,9 @@ function (angular, _, kbn, moment) {
       var self = this;
       backendSrv.datasourceRequest(options).then(function(result) {
         if (result.status !== 201) {
-          console.log("Invalid credential")
+          console.log("Invalid credential");
           return;
         }
-        console.log(result.headers())
         self.default_headers['X-Auth-Token'] = result.headers('X-Subject-Token');
         _.each(result.data['token']['catalog'], function(service) {
           if (service['type'] === 'metric') {

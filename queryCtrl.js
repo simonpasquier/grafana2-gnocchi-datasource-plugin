@@ -60,7 +60,7 @@ function (angular, _) {
       switch(target.queryMode) {
         case "resource_aggregation":
         case "resource_search":
-          $scope.datasource.validateSearchTarget(target).then(function(result){
+          $scope.datasource.validateSearchTarget(target).then(function(result) {
             switch(result.status) {
               case 401:
                 target.errors = "Datasource authentification failed";
