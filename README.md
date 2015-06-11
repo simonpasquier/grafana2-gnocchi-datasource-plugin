@@ -44,8 +44,8 @@ So we are not able to query Keystone for a token and then query gnocchi.
 
 In proxymode, we need to set a token and the Gnocchi url on the datasource
 
-In directmode (Not work yet), we can use login/password and the Keystone url. 
-Note that CORS must be enabled on Keystone and Gnocchi servers.
+In directmode, we can use login/password and the Keystone url. 
+Note that CORS MUST be enabled on Keystone and Gnocchi servers.
 
 
 License
