@@ -18,7 +18,7 @@ Developement and Tests
     cd <grafana_src_directory>
     git clone https://github.com/sileht/grafana2-gnocchi-datasource-plugin public/app/plugins/datasource/gnocchi
     ln -s public/app/plugins/datasource/gnocchi/specs.js public/test/specs/gnocchi-specs.js
-    sed -ie "/lexer-specs/a\ \ \ \ 'specs/gnocchi-specs',"public/test/test-main.js
+    sed -ie "/lexer-specs/a\ \ \ \ 'specs/gnocchi-specs'," public/test/test-main.js
     npm install
     npm install -g grunt-cli
     grunt test
